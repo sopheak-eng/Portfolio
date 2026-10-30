@@ -1,0 +1,384 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — every section uses these (Tailwind turns them into bg-surface, border-line, text-silver,
+ * shadow-elevation, rounded-card, font-heading, … utilities).
+ * Effect budget: no glow, no gradients outside the sky, one accent used sparingly, one elevation shadow.
+ * One exception: the About card's two-tone border and soft glow (.home-about-card).
+ */
+@theme {
+  /* Neutral blacks — no blue tint. Page, cards, inner tiles. */
+  --color-bg: #0a0a0b;
+  --color-surface: #111113;         /* cards: bg-surface/85 */
+  --color-surface-2: #141416;       /* tiles inside a card */
+
+  /* Surfaces and text. */
+  /* The one accent (hot pink): interactive and highlighted elements only — never large areas, gradients or glows. */
+  --color-accent: #ff1458;          /* active nav, links, focus, primary buttons, one word in a heading */
+  --color-accent-hover: #e60f4d;
+  --color-accent-soft: rgba(255, 20, 88, 0.12);
+  --color-line: rgb(255 255 255 / .08);
+  --color-line-strong: rgb(255 255 255 / .18);
+  --color-silver: #c0c7d1;          /* icons, numbers */
+  --color-muted: #9aa3b4;           /* secondary text */
+
+  /* Light Cream palette — navbar only. */
+  --color-cream: #fffaf2;
+  --color-ink: #1c1917;             /* text on cream */
+
+  --radius-card: 0.75rem;           /* = rounded-xl */
+  --shadow-elevation: 0 8px 24px rgba(0, 0, 0, .25);
+  --shadow-accent: 0 8px 24px rgba(255, 20, 88, .30); /* primary buttons only */
+
+  /* Latin fonts first, Kantumruy Pro behind them: none of the Latin fonts has Khmer glyphs, so Khmer text always
+     renders in Kantumruy Pro while names and brands keep their usual look in both languages. */
+  --font-heading: var(--font-poppins), var(--font-geist), var(--font-khmer), sans-serif;
+  --font-body: var(--font-geist), var(--font-khmer), Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), var(--font-khmer), ui-monospace, monospace;
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+}
+
+:root {
+  --background: var(--color-bg);
+  /* Smooth black: a faint lift at the top, a soft vignette at the edges. The stars canvas and the grain sit on top. */
+  --space-sky:
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .5) 100%),
+    radial-gradient(ellipse at 50% 0%, var(--color-surface-2) 0%, var(--color-bg) 60%);
+  --surface: rgb(17 17 19 / .85);   /* same as bg-surface/85, for plain CSS rules */
+  /* Static film grain (SVG noise, no file): tiled over the whole sky. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --text: #fff;
+  /* About card border: white on one side, pink on the other. */
+  --glow-white: rgba(255, 255, 255, 0.5);
+  --glow-pink: rgba(255, 20, 88, 0.5);
+
+  /* Fixed type scale: h1 / h2 / h3 / body / small. */
+  --text-h1: clamp(44px, 6vw, 72px);
+  --text-h2: clamp(32px, 4vw, 48px);
+  --text-h3: 20px;
+  --text-body: 16px;
+  --text-small: 14px;
+}
+
+/* Element defaults in the base layer, so component classes and utilities can override them. */
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--background); scrollbar-gutter: stable; }
+  /* Fixed sky behind everything (SpaceBackground); the body stays transparent so it shows through. */
+  .space-sky { background: var(--space-sky); background-color: var(--background); }
+  /* Above the sky and stars, below all content (it lives inside the -z-10 background layer). */
+  .site-grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--grain);
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    opacity: .06;
+    mix-blend-mode: overlay;
+  }
+  body {
+    margin: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  button { color: inherit; font: inherit; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+}
+
+/* Component classes sit in the components layer, so Tailwind utilities on the same element (mb-4, p-6, …) win. */
+@layer components {
+  /* ---------- Shared type ---------- */
+  .section-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-h2);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    color: #fff;
+  }
+  .card-title { margin: 0; font-family: var(--font-heading); font-size: var(--text-h3); font-weight: 600; line-height: 1.3; color: #fff; }
+
+  /* Solid card surface used by every section. */
+  .card {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-elevation);
+  }
+
+  /* ---------- Hero ---------- */
+  /* Top padding = the floating navbar's bottom edge (16px offset + 64px pill; 16 + 56 on mobile). */
+  .hero { position: relative; min-height: 100svh; padding-top: 80px; }
+  .hero-shell {
+    position: relative; /* the desktop portrait is positioned against it */
+    width: 100%;
+    max-width: 72rem; /* = max-w-6xl, like every section */
+    min-height: calc(100svh - 80px);
+    margin: auto;
+    padding: 48px 24px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Columns and gap come from Tailwind utilities on the element (1 column, 2 from lg). */
+  .hero-grid { flex: 1; min-height: 520px; }
+  .hero-copy { position: relative; width: 100%; text-align: center; }
+  .availability {
+    width: max-content;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    color: #e5e7eb;
+    font-size: var(--text-small);
+    font-weight: 500;
+  }
+  .availability span { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+  .hero h1 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-h1);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -.03em;
+    color: #fff;
+  }
+  .hero h1 > span { display: block; }
+  /* Typewriter caret after the name: 3px pink bar, cap height, blinking every 0.8s. */
+  .typewriter-caret {
+    display: inline-block;
+    width: 3px;
+    height: .75em;
+    margin-left: .06em;
+    background: var(--color-accent);
+    animation: caret-blink .8s step-end infinite;
+  }
+  @keyframes caret-blink { 50% { opacity: 0; } }
+  .roles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 16px;
+    margin: 24px 0 0;
+    color: #e5e7eb;
+    font-size: var(--text-body);
+    font-weight: 500;
+  }
+  .roles i { width: 1px; height: 16px; background: var(--color-line-strong); }
+  .summary { max-width: 560px; margin: 16px auto 0; color: var(--color-muted); font-size: var(--text-body); line-height: 1.6; }
+  .hero-actions { display: flex; justify-content: center; gap: 16px; margin-top: 32px; }
+  .primary-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 24px;
+    border-radius: 8px;
+    font-size: var(--text-body);
+    font-weight: 600;
+    transition: background-color var(--duration-base) ease, border-color var(--duration-base) ease;
+  }
+  .primary-cta { color: #fff; background: var(--color-accent); border: 1px solid var(--color-accent); box-shadow: var(--shadow-accent); }
+  .primary-cta:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+  .social-links { display: flex; gap: 8px; margin-top: 24px; }
+  .hero .social-links { justify-content: center; }
+  .social-link {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--color-line);
+    border-radius: 50%;
+    color: var(--color-silver);
+    transition: color var(--duration-base) ease, border-color var(--duration-base) ease;
+  }
+  .social-link:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+  /* Two-column hero from lg: the copy sits left-aligned beside the portrait (centred when stacked). */
+  @media (min-width: 1024px) {
+    .hero-copy { text-align: left; }
+    .hero-copy .availability, .hero-copy .summary { margin-inline: 0; }
+    .hero-copy .roles, .hero-copy .hero-actions, .hero .social-links { justify-content: flex-start; }
+  }
+
+  /* ---------- About ---------- */
+  .about-block { padding-top: 64px; }
+  .about-block:first-child { padding-top: 0; }
+
+  /* Layout, padding and spacing are Tailwind utilities in AboutMe/AboutInfoColumn; this is the frame and the list bits.
+     Stacked (mobile): white glow on top, pink below; side by side from lg: white left, pink right. */
+  .home-about-card {
+    --glow-angle: 180deg;
+    box-shadow: 0 -8px 24px -8px rgba(255, 255, 255, .18), 0 8px 24px -8px rgba(255, 20, 88, .25);
+  }
+  /* 1.5px gradient border that follows the rounded corners: the mask keeps only the padding ring.
+     The 40% → 60% stretch blends the two colours, so there is no hard line in the middle. */
+  .home-about-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    pointer-events: none;
+    background: linear-gradient(var(--glow-angle), var(--glow-white) 0%, rgba(255, 255, 255, .35) 40%, rgba(255, 20, 88, .35) 60%, var(--glow-pink) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+  @media (min-width: 1024px) {
+    .home-about-card {
+      --glow-angle: 90deg;
+      box-shadow: -8px 0 24px -8px rgba(255, 255, 255, .18), 8px 0 24px -8px rgba(255, 20, 88, .25);
+    }
+  }
+  .home-about-focus-title { margin: 0; color: var(--color-muted); font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+  .home-about-focus-icon { flex-shrink: 0; display: grid; place-items: center; border: 1px solid rgb(255 255 255 / .08); border-radius: 8px; background: rgb(255 255 255 / .04); color: var(--color-silver); }
+  .home-about-card .primary-cta { min-height: 40px; padding: 0 16px; font-size: var(--text-small); }
+
+  .about-do-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .about-do-card { padding: 24px; transition: transform var(--duration-base) ease, border-color var(--duration-base) ease; }
+  .about-do-card:hover { transform: translateY(-2px); border-color: var(--color-line-strong); }
+  .about-do-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 16px; border: 1px solid var(--color-line); border-radius: 8px; color: var(--color-silver); }
+  .about-do-card p { margin: 8px 0 0; color: var(--color-muted); font-size: var(--text-small); line-height: 1.6; }
+
+  /* Toolkit (in the Skills section). */
+  .toolkit { display: flex; flex-direction: column; gap: 32px; }
+  .toolkit-category { margin: 0 0 16px; }
+  .toolkit-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .toolkit-item { display: flex; align-items: center; gap: 12px; padding: 16px; color: #e5e7eb; font-size: var(--text-small); font-weight: 500; transition: border-color var(--duration-base) ease; }
+  /* --tile-bg / --tile-border / --hover-border come from the item's brand colour (AboutToolkit). Flat colours only. */
+  .toolkit-item:hover { border-color: var(--hover-border, var(--color-line-strong)); }
+  .toolkit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 9px;
+    flex-shrink: 0;
+    border: 1px solid var(--tile-border, var(--color-line));
+    border-radius: 8px;
+    background: var(--tile-bg, transparent);
+    color: var(--color-silver);
+  }
+
+  @media (max-width: 900px) {
+    .toolkit-grid { grid-template-columns: repeat(2, 1fr); }
+    .about-do-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Projects ---------- */
+  .simple-card { display: block; max-width: 640px; padding: 24px; transition: border-color var(--duration-base) ease; }
+  .simple-card:hover { border-color: var(--color-line-strong); }
+  .simple-card p { margin: 8px 0 0; color: var(--color-muted); }
+  .simple-card .tags { margin-top: 16px; color: var(--color-muted); font-family: var(--font-mono); font-size: 12px; }
+  .text-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 16px; color: var(--color-accent); font-size: var(--text-small); font-weight: 500; }
+  .text-link:hover { color: var(--color-accent-hover); text-decoration: underline; text-underline-offset: 4px; }
+
+  /* ---------- Contact ---------- */
+  .contact-grid { display: grid; gap: 48px; }
+  .contact-form { display: grid; gap: 16px; padding: 24px; }
+  .field { display: grid; gap: 8px; }
+  .field label { color: #e5e7eb; font-size: var(--text-small); font-weight: 500; }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 8px;
+    color: #fff;
+    background: rgb(0 0 0 / .25);
+    font: inherit;
+    transition: border-color var(--duration-base) ease;
+  }
+  .field textarea { min-height: 136px; resize: vertical; }
+  .field input::placeholder, .field textarea::placeholder { color: rgb(156 163 175 / .7); }
+  .field input:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: transparent; }
+  .submit-button {
+    justify-self: start;
+    min-height: 48px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--color-accent);
+    box-shadow: var(--shadow-accent);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--duration-base) ease;
+  }
+  .submit-button:hover { background: var(--color-accent-hover); }
+  .form-note { margin: 0; color: var(--color-muted); font-size: 12px; }
+  @media (min-width: 900px) {
+    /* Stretch, so the tree column is exactly as tall as the form card. */
+    .contact-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: stretch; }
+  }
+
+  /* ---------- Footer ---------- */
+  .site-footer { position: relative; padding: 32px 24px; border-top: 1px solid var(--color-line); color: var(--color-muted); font-size: var(--text-small); }
+  .site-footer p { max-width: 72rem; margin: 0 auto; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 600px) {
+    .hero { padding-top: 72px; }
+    .hero-shell { padding: 32px 16px 24px; min-height: calc(100svh - 72px); }
+    .roles { font-size: var(--text-small); }
+    .roles i { height: 12px; }
+    .hero-actions { flex-direction: column; gap: 8px; }
+    .primary-cta { width: 100%; }
+    .toolkit-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  }
+}
+
+/* No motion at all when the user asks for it. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  /* Fade-ins are server-rendered in their hidden start state before the client knows the preference — show them as-is. */
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
+
+/* ---------- Intro loader (the one signature moment — unchanged) ---------- */
+/* Repeat visits in the same session: the inline script in layout.tsx sets this before first paint. */
+html[data-intro-seen] .intro-overlay { display: none; }
+/* Scroll lock — set by the inline script before first paint, released by IntroLoader as the fade starts. */
+html[data-intro-lock] { overflow: hidden; }
+/* While the overlay fully covers the screen, skip rendering the page behind it (big win on weak GPUs).
+   Set only after the page has rendered once during load, so revealing it again is cheap. */
+html[data-intro-cover] body > :not(.intro-overlay) { content-visibility: hidden; }
+
+.intro-heading { font-family: var(--font-poppins), var(--font-khmer), Arial, sans-serif; letter-spacing: -.01em; }
+.intro-mono { font-family: var(--font-mono); }
+.intro-welcome-glow { text-shadow: 0 0 14px rgba(255,255,255,.22), 0 2px 24px rgba(2,4,15,.6); }
+.intro-title-glow { text-shadow: 0 0 18px rgba(37,99,235,.6), 0 0 44px rgba(47,123,255,.35); }
+.intro-progress-fill { box-shadow: 0 0 8px rgba(224,247,255,.85); }
+
+/* ---------- Khmer ---------- */
+/* Khmer stacks vowels and subscripts above and below the line, so it needs more line height than Latin, and it has
+   no letter case: uppercase and letter-spacing only break it apart. Unlayered, so these win over Tailwind utilities. */
+html[lang="km"] body { line-height: 1.9; }
+html[lang="km"] :is(p, li, label, .roles, .summary) { line-height: 1.9; }
+html[lang="km"] .section-title { line-height: 1.4; }
+html[lang="km"] .card-title { line-height: 1.6; }
+html[lang="km"] .hero h1 { line-height: 1.25; }
+/* The greeting is the only Khmer line in the hero title; the name stays Latin. A touch smaller so it doesn't crowd. */
+html[lang="km"] .hero h1 > span:first-child { font-size: .8em; }
+html[lang="km"] .leading-tight { line-height: 1.4; }
+html[lang="km"] :is(.uppercase, .home-about-focus-title) { text-transform: none; }
+html[lang="km"] :is([class*="tracking-"], .home-about-focus-title, .section-title, .hero h1 > span:first-child) { letter-spacing: normal; }
